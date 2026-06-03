@@ -1,18 +1,18 @@
-# Adivina Quién — Políticos Colombianos
+# Adivina Quién — Elecciones Colombia 2026
 
-Un juego multijugador **Adivina Quién** transformado para usar personajes de políticos colombianos reales, construido con sockets Python crudos y hilos, y un cliente HTML/JS vanilla que se comunica a través de un protocolo WebSocket implementado manualmente.
+Juego multijugador **Adivina Quién** con los candidatos presidenciales y vicepresidenciales reales de las elecciones colombianas de 2026. Construido con sockets Python crudos y hilos, y un cliente HTML/JS vanilla que se comunica a través de un protocolo WebSocket implementado manualmente.
 
 ---
 
 ## Tech Stack
 
-| Componente    | Tecnología                        |
-|--------------|-----------------------------------|
-| Servidor      | Python 3.10+ — `socket` + `threading` |
-| Protocolo     | WebSocket sobre TCP crudo (sin librerías)  |
-| Cliente       | HTML5 + CSS3 + JavaScript vanilla |
-| Concurrencia  | `threading.Thread` + `threading.Lock` |
-| Imágenes      | Wikipedia thumbnails (220px) |
+| Componente   | Tecnología                                |
+|--------------|-------------------------------------------|
+| Servidor     | Python 3.10+ — `socket` + `threading`     |
+| Protocolo    | WebSocket sobre TCP crudo (RFC 6455)      |
+| Cliente      | HTML5 + CSS3 + JavaScript vanilla         |
+| Concurrencia | `threading.Thread` + `threading.Lock`     |
+| Imágenes     | Wikipedia thumbnails (330px)              |
 
 > **Sin dependencias externas.** El servidor completo funciona con la librería estándar de Python.
 
@@ -30,17 +30,12 @@ Main Thread
         ├── MatchManager (threading.Lock)
         │     └── Cuando hay 2 jugadores en cola → crea GameThread
         └── GameThread
-              ├── Crea GameState (tablero + secretos)
-              ├── Envía game_start a ambos jugadores
+              ├── Envía board completo (15 objetos con image, party, etc.)
+              ├── Asigna personaje secreto a cada jugador
               └── Juego impulsado por eventos de ClientThread
 
 HTTP Thread (separado)
   └── Sirve archivos /public/* (index.html, CSS, JS)
-
-Nginx (proxy inverso)
-  ├── Proxy WebSocket: /ws → app:8765
-  ├── Proxy HTTP: / → app:8080
-  └── Sirve archivos estáticos
 ```
 
 ### Thread Safety
@@ -56,14 +51,14 @@ Nginx (proxy inverso)
 ```
 DYPFINAL/
 ├── server.py              # Servidor principal: socket, threading, HTTP handler
-├── websocket_handler.py   # Manual WebSocket: handshake, frame encode/decode
+├── websocket_handler.py   # WebSocket manual: handshake, frame encode/decode
 ├── game_logic.py          # GameState, lógica de turnos, validación de respuestas
-├── characters.py          # 33 políticos colombianos con imágenes y datos divertidos
+├── characters.py          # 15 candidatos 2026 con imágenes, atributos y preguntas
 ├── requirements.txt       # Vacío — solo stdlib
 ├── public/
-│   ├── index.html         # Interfaz del juego en español con imágenes de políticos
-│   ├── css/style.css      # Estilo actualizado para tarjetas de imágenes
-│   └── js/app.js          # Cliente WebSocket con renderizado de imágenes y preguntas divertidas
+│   ├── index.html         # Interfaz del juego
+│   ├── css/style.css      # Dark theme glassmorphism, grid 5×3
+│   └── js/app.js          # Cliente WebSocket, render de tablero y panel secreto
 └── README.md
 ```
 
@@ -71,39 +66,124 @@ DYPFINAL/
 
 ## Cómo Ejecutar
 
-### Ejecución Local
-
 ```bash
-# Iniciar el servidor
 python server.py
 ```
 
-Luego abrir **dos pestañas del navegador** en:
+Abrir **dos pestañas** en `http://localhost:8080`. El MatchManager las empareja automáticamente.
 
-```
-http://localhost:8080
-```
-
-Ambas pestañas se conectarán a `ws://localhost:8765`. El MatchManager las empareja automáticamente y el juego comienza.
-
-### Múltiples partidas simultáneas
-
-Abrir 4 pestañas — se forman dos partidas independientes. Cada `GameThread` está aislado; los hilos de diferentes partidas nunca comparten un `GameState`.
+Para múltiples partidas: abrir 4 pestañas → se forman dos partidas independientes. Cada `GameThread` está aislado.
 
 ---
+
+## Personajes — Candidatos Reales 2026
+
+**15 figuras políticas colombianas** extraídas de las elecciones presidenciales del 31 de mayo de 2026. Las imágenes provienen de Wikipedia Commons (330px).
+
+### Candidatos incluidos
+
+| # | Nombre | Cargo | Partido | ¿Pasó 2ª vuelta? |
+|---|--------|-------|---------|-----------------|
+| 1 | Iván Cepeda | Presidente | Pacto Histórico | ✅ 40.9% |
+| 2 | Claudia López | Presidente | Con Claudia, Imparables | ❌ |
+| 3 | Abelardo de la Espriella | Presidente | Defensores de la Patria | ✅ 43.7% |
+| 4 | Sergio Fajardo | Presidente | Dignidad & Compromiso | ❌ 4.25% |
+| 5 | Paloma Valencia | Presidente | Centro Democrático | ❌ 6.92% |
+| 6 | Roy Barreras | Presidente | La Fuerza | ❌ |
+| 7 | Mauricio Lizcano | Presidente | Firme con Lizcano | ❌ |
+| 8 | Santiago Botero | Presidente | Romper el Sistema | ❌ |
+| 9 | Gustavo Petro | Presidente | Colombia Humana | — (no candidato) |
+| 10 | Álvaro Uribe | Presidente | Centro Democrático | — (no candidato) |
+| 11 | Aída Quilcué | Vicepresidente | Pacto Histórico | ✅ (fórmula Cepeda) |
+| 12 | Juan Daniel Oviedo | Vicepresidente | Centro Democrático | ❌ |
+| 13 | José Manuel Restrepo | Vicepresidente | Defensores de la Patria | ✅ (fórmula De la Espriella) |
+| 14 | Edna Bonilla | Vicepresidente | Dignidad & Compromiso | ❌ |
+| 15 | Martha Lucía Zamora | Vicepresidente | La Fuerza | ❌ |
+
+### Estructura de cada personaje (`characters.py`)
+
+```python
+{
+    "name":                "Iván Cepeda",
+    "image":               "https://upload.wikimedia.org/...",  # Wikipedia 330px
+    "photo_position":      "center top",   # CSS object-position por personaje
+    "role":                "Presidente",   # Presidente | Vicepresidente
+    "party":               "Pacto Histórico",
+    "gender":              "male",
+    "hair_color":          "black",        # black | brown | blonde | red | white | none
+    "hair_type":           "straight",     # straight | curly | bald
+    "eye_color":           "brown",        # brown | blue | green
+    "has_glasses":         False,
+    "has_hat":             False,
+    "has_beard":           False,
+    "has_mustache":        False,
+    "skin_tone":           "medium",       # light | medium | dark
+    "paso_segunda_vuelta": True,           # ¿No se quemó en primera vuelta?
+    "fue_alcalde":         False,          # ¿Fue alcalde/alcaldesa?
+    "fue_presidente":      False,          # ¿Ha sido presidente de Colombia?
+    "fun_fact":            "..."
+}
+```
+
+---
+
+## Atributos y Preguntas
+
+El juego soporta 13 atributos consultables. Las preguntas se generan desde `get_question_templates()` en `characters.py` y se usan en frontend y backend.
+
+### Atributos físicos
+
+| Atributo | Valores | Pregunta |
+|----------|---------|---------|
+| `gender` | male, female | "¿Es hombre/mujer?" |
+| `hair_color` | black, brown, blonde, red, white, none | "¿Tiene el pelo negro/café/...?" |
+| `hair_type` | straight, curly, bald | "¿Tiene el pelo liso/rizado?" |
+| `eye_color` | brown, blue, green | "¿Tiene ojos cafés/azules/verdes?" |
+| `has_glasses` | true, false | "¿Lleva gafas?" |
+| `has_hat` | true, false | "¿Lleva sombrero o gorra?" |
+| `has_beard` | true, false | "¿Tiene barba?" |
+| `has_mustache` | true, false | "¿Tiene bigote?" |
+| `skin_tone` | light, medium, dark | "¿Tiene piel clara/trigueña/oscura?" |
+
+### Atributos políticos (divertidos)
+
+| Atributo | Pregunta |
+|----------|---------|
+| `role` | "¿Es candidato/a a Presidente / Vicepresidente?" |
+| `paso_segunda_vuelta` | "¿Tu candidato/a NO se quemó en primera vuelta?" |
+| `fue_alcalde` | "¿Tu candidato/a fue alcalde o alcaldesa?" |
+| `fue_presidente` | "¿Tu candidato/a ha sido presidente/a de Colombia?" |
+
+---
+
+## Interfaz
+
+### Layout
+
+- **Header sticky**: título + indicador de turno (pill animado).
+- **Tablero (5×3)**: grilla simétrica que ocupa todo el alto del viewport. Las cards se auto-dimensionan al espacio disponible. El clic voltea la card (flip 3D) para marcarla como eliminada.
+- **Panel lateral**: scroll independiente con tres secciones:
+  1. **Tu personaje secreto** — foto 180px, nombre, badge de cargo (púrpura), badge de partido (cyan), dato curioso (💡).
+  2. **Hacer una pregunta** — selector de atributo + valor + botón "Preguntar".
+  3. **Hacer una adivinanza** — selector de personaje + botón "Adivinar!".
+  4. **Historial de preguntas** — lista scrolleable con ✅/❌.
+
+### Renderizado de imágenes
+
+Cada personaje tiene un campo `photo_position` (CSS `object-position`) para centrar la cara correctamente en el recorte de la card. Si la URL falla, se muestra un SVG fallback.
+
+```javascript
+const pos = char.photo_position || 'center top';
+card.innerHTML = `<img src="${char.image}" style="object-position:${pos}" ...>`;
+```
 
 ---
 
 ## Implementación WebSocket
 
-El módulo `websocket_handler.py` implementa el protocolo WebSocket (RFC 6455) desde cero:
+El módulo `websocket_handler.py` implementa RFC 6455 desde cero con solo stdlib.
 
 ### Handshake
-
-1. El servidor lee la petición HTTP `Upgrade: websocket`.
-2. Extrae `Sec-WebSocket-Key` de los headers.
-3. Calcula `Sec-WebSocket-Accept = base64(SHA-1(key + GUID))`.
-4. Envía respuesta `101 Switching Protocols`.
 
 ```python
 accept = base64.b64encode(
@@ -114,17 +194,11 @@ accept = base64.b64encode(
 ### Frame Format
 
 ```
- 0                   1                   2                   3
- 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-+-+-+-+-+-+-+-+-+-+-------+-+-------------+-------------------------------+
-|F|R|R|R| opcode|M| Payload len |    Extended payload length    |
-|I|S|S|S|  (4)  |A|     (7)     |             (16/64)           |
-|N|V|V|V|       |S|             |                               |
-| |1|2|3|       |K|             |                               |
-+-+-+-+-+-+-+-+-+-+-------+-+-------------+-------------------------------+
+ 0 1 2 3 4 5 6 7 | 8 9 0 1 2 3 4 5 | 16 .. 31
+ FIN + opcode    | MASK + len       | Payload
 ```
 
-Los frames del cliente siempre están enmascarados; los del servidor no. El enmascaramiento/desenmascaramiento usa XOR con una clave de 4 bytes:
+El cliente siempre enmascara frames; el servidor nunca. XOR con clave de 4 bytes:
 
 ```python
 payload = bytes(b ^ mask_key[i % 4] for i, b in enumerate(payload))
@@ -132,187 +206,82 @@ payload = bytes(b ^ mask_key[i % 4] for i, b in enumerate(payload))
 
 ---
 
-## Protocolo de Comunicación
+## Protocolo de Comunicación (JSON sobre WebSocket)
 
 ### Cliente → Servidor
 
 ```json
-{ "type": "question", "attribute": "hair_color", "value": "rojo" }
-{ "type": "guess",    "name": "Carlos" }
-{ "type": "toggle",   "name": "Maria" }
+{ "type": "question", "attribute": "paso_segunda_vuelta", "value": true }
+{ "type": "guess",    "name": "Claudia López" }
+{ "type": "toggle",   "name": "Roy Barreras" }
 ```
 
 ### Servidor → Cliente
 
 ```json
 { "type": "waiting" }
-{ "type": "game_start", "board": [...], "your_turn": true, "player_number": 1, "your_secret": "Alex" }
-{ "type": "question_result", "question": "¿Tiene pelo rojo?", "answer": true, "your_turn": false }
-{ "type": "opponent_asked",  "question": "¿Lleva gafas?", "your_turn": true }
-{ "type": "game_over", "winner": true, "opponent_secret": "Ben", "your_secret": "Alex" }
+{ "type": "game_start",
+  "board": [{ "name": "...", "image": "...", "role": "...", "party": "...",
+              "photo_position": "...", "gender": "...", ... }],
+  "your_turn": true,
+  "player_number": 1,
+  "your_secret": "Sergio Fajardo" }
+{ "type": "question_result", "question": "¿Tu candidato/a se quemó en primera vuelta?", "answer": true, "your_turn": false }
+{ "type": "opponent_asked",  "question": "¿Es mujer?", "your_turn": true }
+{ "type": "game_over", "winner": true, "opponent_secret": "Gustavo Petro", "your_secret": "Aída Quilcué" }
 { "type": "opponent_disconnected" }
 ```
+
+> El board se envía como lista de objetos completos (no solo nombres) para que el cliente tenga todos los datos sin peticiones adicionales.
 
 ---
 
 ## Reglas del Juego
 
-1. El servidor asigna el turno al Jugador 1 al inicio.
-2. En tu turno puedes:
-   - **Preguntar** — seleccionar atributo + valor; el servidor responde **Sí/No** basado en el personaje secreto del oponente.
-   - **Adivinar** — nombrar un personaje; correcto → ganas, incorrecto → pierdes inmediatamente.
+1. El servidor asigna el turno al **Jugador 1** al inicio.
+2. En tu turno podés:
+   - **Preguntar** — elegir atributo + valor; el servidor responde **Sí/No** comparando con el personaje secreto del oponente.
+   - **Adivinar** — nombrar un personaje; si acertás ganás, si fallás perdés inmediatamente.
 3. Después de una pregunta, el turno pasa al oponente.
-4. Hacer clic en una carta del tablero la marca como eliminada (ayuda visual local).
-
----
-
-## Personajes Colombianos
-
-**33 políticos colombianos** con imágenes de Wikipedia, datos divertidos y información de partidos:
-
-### Estructura de Personajes
-
-Cada personaje incluye:
-
-| Atributo    | Valores | Descripción |
-|--------------|--------|-------------|
-| `name`       | String | Nombre completo del político |
-| `image`      | URL | Imagen de Wikipedia (220px) |
-| `gender`     | male, female | Género |
-| `hair_color` | black, brown, blonde, red, white, none | Color de pelo |
-| `hair_type`  | straight, curly, bald | Tipo de pelo |
-| `eye_color`  | brown, blue, green | Color de ojos |
-| `has_glasses`| true, false | Lleva lentes |
-| `has_hat`    | true, false | Lleva sombrero/gorra |
-| `has_beard`  | true, false | Tiene barba |
-| `has_mustache` | true, false | Tiene bigote |
-| `skin_tone`  | light, medium, dark | Tono de piel |
-| `fun_fact`   | String | Dato curioso divertido |
-| `party`      | String | Partido político |
-
-### Ejemplos de Personajes
-
-- **Gustavo Petro** - Cantaba vallenatos en su juventud (Colombia Humana)
-- **Iván Duque** - Tiene un MBA de Harvard (Centro Democrático)
-- **Ángela María Orozco** - Primera alcaldesa de Bogotá (Liberal)
-- **Rodolfo Hernández** - Exalcalde de Bucaramanga (Liga de Gobernantes)
-
-### Preguntas Divertidas en Español
-
-El sistema genera preguntas automáticamente con toques humorísticos:
-
-- "¿Cantaba vallenatos en su juventud?" (referencia a Gustavo Petro)
-- "¿Tiene un MBA de Harvard?" (referencia a Iván Duque)
-- "¿Es una política mujer?" (género)
-- "¿Tiene el pelo café?" (color de pelo)
-- "¿Lleva lentes?" (accesorios)
-
----
-
-## Interfaz en Español con Imágenes
-
-La interfaz de usuario está completamente traducida al español con imágenes reales:
-
-### Características de la Interfaz
-
-- **Pantalla de espera**: "Esperando a un oponente…" con spinner animado
-- **Tarjetas de personajes**: Imagen real + nombre + dato curioso (💡)
-- **Botones**: "Preguntar", "Adivinar", "Jugar de Nuevo"
-- **Indicador de turno**: "Tu turno" / "Turno del oponente"
-- **Modal de fin**: "¡Has Ganado!" / "¡Has Perdido!"
-- **Historial**: "Historial de Preguntas" con iconos ✅/❌
-
-### Renderizado de Imágenes
-
-- Las imágenes se cargan desde URLs de Wikipedia
-- Manejo de errores con imagen SVG fallback
-- Diseño responsive con `object-fit: cover`
-- Tooltip con dato curioso al pasar el mouse sobre 💡
-
-### Preguntas Dinámicas
-
-El sistema genera preguntas en español basadas en los atributos:
-
-```javascript
-function getQuestionText(attr, value) {
-  // Ejemplos:
-  // "¿Es un político hombre?" (gender: male)
-  // "¿Tiene el pelo café?" (hair_color: brown)
-  // "¿Lleva lentes?" (has_glasses: true)
-  // "¿Cantaba vallenatos en su juventud?" (fun_fact)
-}
-```
+4. Clic en una card del tablero la marca como eliminada (gestión local, no afecta al servidor).
 
 ---
 
 ## Verificación
 
 ```bash
-# 1. Iniciar el servidor
+# Iniciar el servidor
 python server.py
 
-# 2. Abrir dos pestañas del navegador en http://localhost:8080
-# 3. El matchmaking ocurre automáticamente
-# 4. Jugar una partida completa con personajes colombianos
+# Abrir dos pestañas en http://localhost:8080
+# El matchmaking es automático → jugar una partida completa
 
-# Para prueba de concurrencia: abrir 4 pestañas → dos partidas independientes
+# Concurrencia: abrir 4 pestañas → dos partidas independientes
 ```
 
-### Pruebas adicionales
+### Checklist de pruebas
 
-- **Desconexión**: Cerrar una pestaña → el otro jugador debe ser notificado
-- **Concurrencia**: 2+ partidas simultáneas sin interferencia
-- **Carga de imágenes**: Verificar que todas las URLs de Wikipedia carguen correctamente
-- **Preguntas divertidas**: Probar que las preguntas se generan correctamente en español
-
-### Pruebas de Imágenes
-
-- URLs rotas: El sistema muestra imagen SVG fallback
-- Carga lenta: Imágenes con `loading="lazy"`
-- Responsive: Se adaptan a diferentes tamaños de pantalla
+- [ ] Matchmaking automático al abrir dos pestañas
+- [ ] Panel "Tu personaje secreto" muestra foto, cargo y partido correctamente
+- [ ] Preguntas políticas ("¿se quemó?", "¿fue alcalde?") responden correctamente
+- [ ] Flip 3D al eliminar una card
+- [ ] Modal de victoria/derrota con secretos revelados
+- [ ] Notificación al desconectar oponente
+- [ ] Dos partidas simultáneas sin interferencia
 
 ---
 
 ## Despliegue
 
-Para producción, el servidor puede ejecutarse directamente o tras un proxy inverso:
-
 ```bash
-# Ejecutar directamente
 python server.py
 ```
 
-Para configurar tras un proxy inverso (Nginx, Apache, etc.):
-- Proxy WebSocket: `ws://localhost:8765`
-- Servir archivos estáticos: `/public`
+| Puerto | Uso |
+|--------|-----|
+| `8080` | HTTP — sirve archivos estáticos de `/public` |
+| `8765` | WebSocket — protocolo del juego |
 
-## Cambos Realizados (Versión Colombianos)
-
-### Transformación de Personajes
-- ✅ **33 políticos colombianos** reemplazando personajes genéricos
-- ✅ **Imágenes de Wikipedia** con thumbnails de 220px
-- ✅ **Datos divertidos** (fun facts) para cada personaje
-- ✅ **Información de partidos** políticos
-
-### Actualización Frontend
-- ✅ **Renderizado de imágenes** reemplazando emojis
-- ✅ **CSS actualizado** para tarjetas de imágenes
-- ✅ **Preguntas dinámicas** en español con toques humorísticos
-- ✅ **Manejo de errores** con imágenes SVG fallback
-
-### Mejoras de Juego
-- ✅ **33 personajes** vs 24 originales (más variedad)
-- ✅ **Contexto cultural** colombiano en preguntas
-- ✅ **Interfaz más rica** con imágenes reales
-- ✅ **Datos educativos** sobre políticos colombianos
-
-### Compatibilidad
-- ✅ **Backend sin cambios** - compatible con nueva estructura
-- ✅ **Protocolo WebSocket** inalterado
-- ✅ **Múltiples partidas** simultáneas soportadas
-
-### NOTA: Docker y Nginx
-- Los archivos Dockerfile, docker-compose.yml y nginx.conf fueron eliminados según solicitud
-- El servidor funciona con su servidor HTTP integrado en el puerto 8080
-- WebSocket funciona directamente en el puerto 8765
-- Puede ser desplegado con cualquier proxy inverso en el futuro
+Para proxy inverso (Nginx, Caddy, etc.):
+- `ws://localhost:8765` → WebSocket
+- `http://localhost:8080` → estáticos
