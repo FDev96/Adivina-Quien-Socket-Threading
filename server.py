@@ -238,24 +238,18 @@ def _send_http(conn: socket.socket, status: int, content_type: str, body: bytes)
 # ---------------------------------------------------------------------------
 
 def _format_question(attribute: str, value) -> str:
-    labels = {
-        "gender":       ("Is it a", f"{value}?"),
-        "hair_color":   ("Does he/she have", f"{value} hair?"),
-        "hair_type":    ("Does he/she have", f"{value} hair?"),
-        "eye_color":    ("Does he/she have", f"{value} eyes?"),
-        "has_glasses":  ("Does he/she wear glasses?", ""),
-        "has_hat":      ("Does he/she wear a hat?", ""),
-        "has_beard":    ("Does he/she have a beard?", ""),
-        "has_mustache": ("Does he/she have a mustache?", ""),
-        "skin_tone":    ("Does he/she have", f"{value} skin?"),
-    }
-    if attribute in ("has_glasses", "has_hat", "has_beard", "has_mustache"):
-        q, _ = labels[attribute]
-        if value is False or value == "false":
-            q = q.replace("Does", "Doesn't")
-        return q
-    prefix, suffix = labels.get(attribute, (attribute, str(value)))
-    return f"{prefix} {suffix}"
+    from characters import get_question_templates
+    templates = get_question_templates()
+    if attribute in templates:
+        key = value
+        if isinstance(value, bool):
+            key = value
+        elif value == "true":
+            key = True
+        elif value == "false":
+            key = False
+        return templates[attribute].get(key, f"¿{attribute}: {value}?")
+    return f"¿{attribute}: {value}?"
 
 
 # ---------------------------------------------------------------------------

@@ -3,9 +3,13 @@
 
   const WS_URL = `ws://${location.hostname}:8765`;
 
-  // Attribute value maps for the question form
+  // Mapas de valores de atributo para el formulario de preguntas
   const ATTR_VALUES = {
-    gender:       ['male', 'female'],
+    paso_segunda_vuelta: [true, false],
+    fue_alcalde:         [true, false],
+    fue_presidente:      [true, false],
+    role:                ['Presidente', 'Vicepresidente'],
+    gender:              ['male', 'female'],
     hair_color:   ['black', 'brown', 'blonde', 'red', 'white', 'none'],
     hair_type:    ['straight', 'curly', 'bald'],
     eye_color:    ['brown', 'blue', 'green'],
@@ -16,28 +20,24 @@
     skin_tone:    ['light', 'medium', 'dark'],
   };
 
-  // Avatar emojis indexed by character name
-  const AVATARS = {
-    Alex:'🧑', Ana:'👩', Ben:'🧔', Clara:'👩‍🦰', David:'👨‍🦱', Elena:'👩‍🦳',
-    Frank:'🧓', Grace:'👱‍♀️', Hector:'🧑‍🦲', Iris:'🤓', Jake:'👱', Karen:'👩‍🦳',
-    Leo:'🧑‍🦲', Maya:'👩‍🦱', Nick:'🕵️', Olivia:'👸', Paul:'🧑‍🦰', Quinn:'👩',
-    Ryan:'😏', Sofia:'👒', Tom:'🕶️', Uma:'🧕', Victor:'🥸', Wendy:'🧙‍♀️',
-  };
-
-  // ── State ──────────────────────────────────────────────────────────────────
+  // ── Estado ──────────────────────────────────────────────────────────────────
   let socket = null;
   let myTurn = false;
   let board = [];
-  let eliminated = new Set();   // names toggled off by this client
+  let eliminated = new Set();   // nombres eliminados por este cliente
   let gameOver = false;
 
-  // ── DOM refs ───────────────────────────────────────────────────────────────
+  // ── Referencias DOM ─────────────────────────────────────────────────────────────
   const $ = id => document.getElementById(id);
   const screenWaiting = $('screen-waiting');
   const screenGame    = $('screen-game');
-  const boardEl       = $('board');
-  const turnIndicator = $('turn-indicator');
-  const secretName    = $('secret-name');
+  const boardEl        = $('board');
+  const turnIndicator  = $('turn-indicator');
+  const secretCharImg   = $('secret-char-img');
+  const secretCharName  = $('secret-char-name');
+  const secretCharRole  = $('secret-char-role');
+  const secretCharParty = $('secret-char-party');
+  const secretCharFact  = $('secret-char-fact');
   const attrSelect    = $('attr-select');
   const valSelect     = $('val-select');
   const btnAsk        = $('btn-ask');
@@ -56,10 +56,10 @@
     });
   }
 
-  // ── Message handlers ───────────────────────────────────────────────────────
+  // ── Manejadores de mensajes ───────────────────────────────────────────────────────
   function handleMessage(msg) {
     switch (msg.type) {
-      case 'waiting':     break; // already on waiting screen
+      case 'waiting':     break; // ya está en pantalla de espera
       case 'game_start':  onGameStart(msg);        break;
       case 'question_result': onQuestionResult(msg); break;
       case 'opponent_asked':  onOpponentAsked(msg);  break;
@@ -71,14 +71,24 @@
   function onGameStart(msg) {
     board  = msg.board;
     myTurn = msg.your_turn;
-    secretName.textContent = msg.your_secret;
 
+    const secretChar = board.find(c => c.name === msg.your_secret) || { name: msg.your_secret };
+    renderSecretChar(secretChar);
     renderBoard();
     populateGuessSelect();
     updateTurnUI();
 
     screenWaiting.classList.remove('active');
     screenGame.classList.add('active');
+  }
+
+  function renderSecretChar(char) {
+    secretCharImg.src           = char.image || '';
+    secretCharImg.alt           = char.name  || '';
+    secretCharName.textContent  = char.name  || '—';
+    secretCharRole.textContent  = char.role  || '';
+    secretCharParty.textContent = char.party || '';
+    secretCharFact.textContent  = char.fun_fact || '';
   }
 
   function onQuestionResult(msg) {
@@ -97,9 +107,9 @@
     gameOver = true;
     const modal = $('modal-gameover');
     $('modal-icon').textContent  = msg.winner ? '🏆' : '💀';
-    $('modal-title').textContent = msg.winner ? 'You Win!' : 'You Lose!';
-    $('modal-body').textContent  =
-      `Opponent's secret was ${msg.opponent_secret}. Yours was ${msg.your_secret}.`;
+    $('modal-title').textContent = msg.winner ? '¡Has Ganado!' : '¡Has Perdido!';
+    $('modal-body').textContent  = 
+      `El secreto del oponente era ${msg.opponent_secret}. El tuyo era ${msg.your_secret}.`;
     modal.classList.remove('hidden');
   }
 
@@ -108,23 +118,33 @@
     modalDisconn.classList.remove('hidden');
   }
 
-  // ── Board rendering ────────────────────────────────────────────────────────
+  // ── Renderizado del tablero ────────────────────────────────────────────────────────
   function renderBoard() {
     boardEl.innerHTML = '';
     board.forEach(char => {
       const card = document.createElement('div');
       card.className = 'char-card' + (eliminated.has(char.name) ? ' eliminated' : '');
       card.dataset.name = char.name;
+      
+      // Crear el contenido con imagen y nombre
+      const pos = char.photo_position || 'center top';
       card.innerHTML = `
         <div class="char-card-inner">
           <div class="char-front">
-            <div class="char-avatar">${AVATARS[char.name] || '🙂'}</div>
+            <div class="char-avatar">
+              <img src="${char.image}" alt="${char.name}" loading="lazy"
+                   style="object-position:${pos}"
+                   onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTIwIDEwSDBWMjAiIHN0cm9rZT0iIzAwQTAwMCIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPC9zdmc+'">
+            </div>
             <div class="char-name">${char.name}</div>
+            <div class="char-fact" title="Dato curioso: ${char.fun_fact}">💡</div>
           </div>
           <div class="char-back">
             <div class="char-back-icon">✕</div>
+            <div class="char-back-text">Eliminado</div>
           </div>
         </div>`;
+      
       card.addEventListener('click', () => toggleCard(card, char.name));
       boardEl.appendChild(card);
     });
@@ -141,9 +161,9 @@
     send({ type: 'toggle', name });
   }
 
-  // ── Guess select ───────────────────────────────────────────────────────────
+  // ── Selector de adivinanza ───────────────────────────────────────────────────────────
   function populateGuessSelect() {
-    guessSelect.innerHTML = '<option value="">Select character…</option>';
+    guessSelect.innerHTML = '<option value="">Seleccionar personaje…</option>';
     board.forEach(c => {
       const opt = document.createElement('option');
       opt.value = c.name;
@@ -152,16 +172,16 @@
     });
   }
 
-  // ── Turn UI ────────────────────────────────────────────────────────────────
+  // ── UI de turno ────────────────────────────────────────────────────────────────
   function updateTurnUI() {
     if (myTurn) {
-      turnIndicator.textContent = 'Your turn';
+      turnIndicator.textContent = 'Tu turno';
       turnIndicator.className   = 'turn-indicator your-turn';
       btnAsk.disabled   = false;
       btnGuess.disabled = false;
       updateAskButton();
     } else {
-      turnIndicator.textContent = "Opponent's turn";
+      turnIndicator.textContent = "Turno del oponente";
       turnIndicator.className   = 'turn-indicator opponent-turn';
       btnAsk.disabled   = true;
       btnGuess.disabled = true;
@@ -172,10 +192,10 @@
     btnAsk.disabled = !(myTurn && attrSelect.value && valSelect.value !== '');
   }
 
-  // ── Attribute / value selects ──────────────────────────────────────────────
+  // ── Selectores de atributo/valor ──────────────────────────────────────────────────────
   attrSelect.addEventListener('change', () => {
     const attr = attrSelect.value;
-    valSelect.innerHTML = '<option value="">Select value…</option>';
+    valSelect.innerHTML = '<option value="">Seleccionar valor…</option>';
 
     if (!attr) {
       valSelect.disabled = true;
@@ -187,7 +207,7 @@
     values.forEach(v => {
       const opt = document.createElement('option');
       opt.value       = String(v);
-      opt.textContent = String(v);
+      opt.textContent = getQuestionText(attr, v);
       valSelect.appendChild(opt);
     });
     valSelect.disabled = false;
@@ -196,22 +216,92 @@
 
   valSelect.addEventListener('change', updateAskButton);
 
-  // ── Ask button ─────────────────────────────────────────────────────────────
+  // ── Función para generar texto de preguntas divertidas ─────────────────────────────────
+  function getQuestionText(attr, value) {
+    const questions = {
+      paso_segunda_vuelta: {
+        true:  "¿Tu candidato/a NO se quemó en primera vuelta?",
+        false: "¿Tu candidato/a se quemó en primera vuelta?",
+      },
+      fue_alcalde: {
+        true:  "¿Tu candidato/a fue alcalde o alcaldesa?",
+        false: "¿Tu candidato/a nunca fue alcalde ni alcaldesa?",
+      },
+      fue_presidente: {
+        true:  "¿Tu candidato/a ha sido presidente/a de Colombia?",
+        false: "¿Tu candidato/a nunca ha sido presidente/a de Colombia?",
+      },
+      role: {
+        Presidente:     "¿Es candidato/a a Presidente?",
+        Vicepresidente: "¿Es candidato/a a Vicepresidente?",
+      },
+      gender: {
+        male:   "¿Es hombre?",
+        female: "¿Es mujer?",
+      },
+      hair_color: {
+        black:  "¿Tiene el pelo negro?",
+        brown:  "¿Tiene el pelo café?",
+        blonde: "¿Tiene el pelo rubio?",
+        red:    "¿Tiene el pelo rojo?",
+        white:  "¿Tiene el pelo blanco/canoso?",
+        none:   "¿Está calvo/a?",
+      },
+      hair_type: {
+        straight: "¿Tiene el pelo liso?",
+        curly:    "¿Tiene el pelo rizado?",
+        bald:     "¿Está completamente calvo/a?",
+      },
+      eye_color: {
+        brown: "¿Tiene ojos cafés?",
+        blue:  "¿Tiene ojos azules?",
+        green: "¿Tiene ojos verdes?",
+      },
+      has_glasses: {
+        true:  "¿Lleva gafas?",
+        false: "¿No lleva gafas?",
+      },
+      has_hat: {
+        true:  "¿Lleva sombrero o gorra?",
+        false: "¿No lleva sombrero ni gorra?",
+      },
+      has_beard: {
+        true:  "¿Tiene barba?",
+        false: "¿No tiene barba?",
+      },
+      has_mustache: {
+        true:  "¿Tiene bigote?",
+        false: "¿No tiene bigote?",
+      },
+      skin_tone: {
+        light:  "¿Tiene piel clara?",
+        medium: "¿Tiene piel trigueña?",
+        dark:   "¿Tiene piel oscura?",
+      },
+    };
+    
+    return questions[attr]?.[value] || `¿${value}?`;
+  }
+
+  // ── Botón de pregunta ─────────────────────────────────────────────────────────────
   btnAsk.addEventListener('click', () => {
     const attr = attrSelect.value;
     let   val  = valSelect.value;
     if (!attr || val === '') return;
 
-    // convert boolean strings back to booleans
+    // convertir strings booleanos de vuelta a booleanos
     if (val === 'true')  val = true;
     if (val === 'false') val = false;
 
-    send({ type: 'question', attribute: attr, value: val });
+    // Generar pregunta divertida
+    const questionText = getQuestionText(attr, val);
+    
+    send({ type: 'question', attribute: attr, value: val, question: questionText });
     btnAsk.disabled   = true;
     btnGuess.disabled = true;
   });
 
-  // ── Guess button ───────────────────────────────────────────────────────────
+  // ── Botón de adivinanza ───────────────────────────────────────────────────────────
   btnGuess.addEventListener('click', () => {
     const name = guessSelect.value;
     if (!name) return;
@@ -220,18 +310,19 @@
     btnGuess.disabled = true;
   });
 
-  // ── History ────────────────────────────────────────────────────────────────
+  // ── Historial ────────────────────────────────────────────────────────────────
   function addHistory(question, answer, isOpponent) {
     const li = document.createElement('li');
 
     if (answer === null) {
-      // opponent asked, answer unknown to us
+      // el oponente preguntó, respuesta desconocida para nosotros
       li.className = 'history-item';
-      li.textContent = `Opponent asked: ${question}`;
+      li.innerHTML = `<strong>Oponente preguntó:</strong> ${question}`;
     } else {
       li.className = `history-item ${answer ? 'answer-yes' : 'answer-no'}`;
-      const who = isOpponent ? 'Opp' : 'You';
-      li.textContent = `${who}: ${question} → ${answer ? 'Yes ✓' : 'No ✗'}`;
+      const who = isOpponent ? 'Oponente' : 'Tú';
+      const icon = answer ? '✅' : '❌';
+      li.innerHTML = `<strong>${who}:</strong> ${question} <span class="answer-icon">${icon}</span>`;
     }
 
     historyList.prepend(li);
@@ -244,6 +335,6 @@
     }
   }
 
-  // ── Init ───────────────────────────────────────────────────────────────────
+  // ── Inicialización ───────────────────────────────────────────────────────────
   connect();
 })();

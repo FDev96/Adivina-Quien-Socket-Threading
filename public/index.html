@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Guess Who — Multiplayer</title>
+  <title>Adivina Quién — Multijugador</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -11,92 +11,115 @@
 </head>
 <body>
 
-  <!-- WAITING SCREEN -->
+  <!-- PANTALLA DE ESPERA -->
   <div id="screen-waiting" class="screen active">
     <div class="waiting-card">
       <div class="spinner"></div>
-      <h1>Guess Who</h1>
-      <p>Waiting for an opponent…</p>
+      <h1>Adivina Quién</h1>
+      <p>Esperando a un oponente…</p>
     </div>
   </div>
 
-  <!-- GAME SCREEN -->
+  <!-- PANTALLA DE JUEGO -->
   <div id="screen-game" class="screen">
     <header class="game-header">
-      <div class="header-title">Guess Who</div>
+      <div class="header-title">Adivina Quién</div>
       <div id="turn-indicator" class="turn-indicator">—</div>
-      <div id="secret-display" class="secret-display">Your secret: <span id="secret-name">?</span></div>
     </header>
 
     <main class="game-layout">
-      <!-- Board -->
+      <!-- Tablero -->
       <section class="board-section">
-        <h2 class="section-title">Board</h2>
+        <h2 class="section-title">Tablero</h2>
         <div id="board" class="board-grid"></div>
       </section>
 
-      <!-- Side panel -->
+      <!-- Panel lateral -->
       <aside class="side-panel">
-        <!-- Ask a question -->
+
+        <!-- Tu personaje secreto -->
+        <div class="panel-block secret-character-panel">
+          <h3>Tu personaje secreto</h3>
+          <div class="secret-char-card">
+            <div class="secret-char-photo-wrap">
+              <img id="secret-char-img" src="" alt="" loading="lazy"
+                   onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCA4MCA4MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iODAiIGhlaWdodD0iODAiIGZpbGw9IiMxRTFFMzgiLz48cGF0aCBkPSJNNDAgMjBDMzMuMzcgMjAgMjggMjUuMzcgMjggMzJDMjggMzguNjMgMzMuMzcgNDQgNDAgNDRDNDYuNjMgNDQgNTIgMzguNjMgNTIgMzJDNTIgMjUuMzcgNDYuNjMgMjAgNDAgMjBaTTE2IDY0QzE2IDU2LjI3IDI3LjI5IDUwIDQwIDUwQzUyLjcxIDUwIDY0IDU2LjI3IDY0IDY0SDY0VjY4SDE2VjY0WiIgZmlsbD0iIzJBMkE0QSIvPjwvc3ZnPg=='">
+            </div>
+            <div class="secret-char-info">
+              <div class="secret-char-name" id="secret-char-name">—</div>
+              <div class="secret-char-badges">
+                <span class="secret-char-role" id="secret-char-role"></span>
+                <span class="secret-char-party" id="secret-char-party"></span>
+              </div>
+              <div class="secret-char-fact" id="secret-char-fact"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Hacer una pregunta -->
         <div class="panel-block">
-          <h3>Ask a Question</h3>
+          <h3>Hacer una Pregunta</h3>
           <div class="question-form">
             <select id="attr-select" class="select-input">
-              <option value="">Select attribute…</option>
-              <option value="gender">Gender</option>
-              <option value="hair_color">Hair color</option>
-              <option value="hair_type">Hair type</option>
-              <option value="eye_color">Eye color</option>
-              <option value="has_glasses">Wears glasses?</option>
-              <option value="has_hat">Wears a hat?</option>
-              <option value="has_beard">Has a beard?</option>
-              <option value="has_mustache">Has a mustache?</option>
-              <option value="skin_tone">Skin tone</option>
+              <option value="">Seleccionar atributo…</option>
+              <option value="paso_segunda_vuelta">¿Se quemó en 1ª vuelta?</option>
+              <option value="fue_alcalde">¿Fue alcalde/alcaldesa?</option>
+              <option value="fue_presidente">¿Fue presidente/a?</option>
+              <option value="role">Cargo (Pdte / Vicepdte)</option>
+              <option value="gender">Género</option>
+              <option value="hair_color">Color de pelo</option>
+              <option value="hair_type">Tipo de pelo</option>
+              <option value="eye_color">Color de ojos</option>
+              <option value="has_glasses">Lleva gafas?</option>
+              <option value="has_hat">Lleva sombrero?</option>
+              <option value="has_beard">Tiene barba?</option>
+              <option value="has_mustache">Tiene bigote?</option>
+              <option value="skin_tone">Tono de piel</option>
             </select>
             <select id="val-select" class="select-input" disabled>
-              <option value="">Select value…</option>
+              <option value="">Seleccionar valor…</option>
             </select>
-            <button id="btn-ask" class="btn btn-primary" disabled>Ask</button>
+            <button id="btn-ask" class="btn btn-primary" disabled>Preguntar</button>
           </div>
         </div>
 
-        <!-- Guess -->
+        <!-- Adivinar -->
         <div class="panel-block">
-          <h3>Make a Guess</h3>
+          <h3>Hacer una Adivinanza</h3>
           <div class="guess-form">
             <select id="guess-select" class="select-input">
-              <option value="">Select character…</option>
+              <option value="">Seleccionar personaje…</option>
             </select>
-            <button id="btn-guess" class="btn btn-accent" disabled>Guess!</button>
+            <button id="btn-guess" class="btn btn-accent" disabled>Adivinar!</button>
           </div>
         </div>
 
-        <!-- History -->
+        <!-- Historial -->
         <div class="panel-block history-block">
-          <h3>Q&amp;A History</h3>
+          <h3>Historial de Preguntas</h3>
           <ul id="history-list" class="history-list"></ul>
         </div>
       </aside>
     </main>
   </div>
 
-  <!-- GAME OVER MODAL -->
+  <!-- MODAL DE FIN DE JUEGO -->
   <div id="modal-gameover" class="modal hidden">
     <div class="modal-card">
       <div id="modal-icon" class="modal-icon">🏆</div>
-      <h2 id="modal-title">You Win!</h2>
+      <h2 id="modal-title">¡Has Ganado!</h2>
       <p id="modal-body"></p>
-      <button class="btn btn-primary" onclick="location.reload()">Play Again</button>
+      <button class="btn btn-primary" onclick="location.reload()">Jugar de Nuevo</button>
     </div>
   </div>
 
-  <!-- DISCONNECT MODAL -->
+  <!-- MODAL DE DESCONEXIÓN -->
   <div id="modal-disconnect" class="modal hidden">
     <div class="modal-card">
       <div class="modal-icon">🔌</div>
-      <h2>Opponent disconnected</h2>
-      <p>The game has ended.</p>
-      <button class="btn btn-primary" onclick="location.reload()">Play Again</button>
+      <h2>Oponente desconectado</h2>
+      <p>La partida ha terminado.</p>
+      <button class="btn btn-primary" onclick="location.reload()">Jugar de Nuevo</button>
     </div>
   </div>
 

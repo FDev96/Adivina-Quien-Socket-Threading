@@ -1,47 +1,53 @@
-# Guess Who — Multiplayer
+# Adivina Quién — Políticos Colombianos
 
-A multiplayer **Guess Who** game built with raw Python sockets and threads, and a vanilla HTML/JS client communicating over a manually implemented WebSocket protocol.
+Un juego multijugador **Adivina Quién** transformado para usar personajes de políticos colombianos reales, construido con sockets Python crudos y hilos, y un cliente HTML/JS vanilla que se comunica a través de un protocolo WebSocket implementado manualmente.
 
 ---
 
 ## Tech Stack
 
-| Component    | Technology                        |
+| Componente    | Tecnología                        |
 |--------------|-----------------------------------|
-| Server       | Python 3.10+ — `socket` + `threading` |
-| Protocol     | WebSocket over raw TCP (no libs)  |
-| Client       | HTML5 + CSS3 + JavaScript vanilla |
-| Concurrency  | `threading.Thread` + `threading.Lock` |
+| Servidor      | Python 3.10+ — `socket` + `threading` |
+| Protocolo     | WebSocket sobre TCP crudo (sin librerías)  |
+| Cliente       | HTML5 + CSS3 + JavaScript vanilla |
+| Concurrencia  | `threading.Thread` + `threading.Lock` |
+| Imágenes      | Wikipedia thumbnails (220px) |
 
-> **No external dependencies.** The entire server runs on Python's standard library.
+> **Sin dependencias externas.** El servidor completo funciona con la librería estándar de Python.
 
 ---
 
-## Architecture
+## Arquitectura
 
 ```
 Main Thread
   └── socket.bind() → listen() → accept() loop
-        ├── ClientThread (one per connection)
+        ├── ClientThread (uno por conexión)
         │     ├── WebSocket handshake (manual SHA-1 + base64)
-        │     ├── Registers with MatchManager
-        │     └── Message loop (question / guess / toggle)
+        │     ├── Se registra con MatchManager
+        │     └── Bucle de mensajes (pregunta / adivinanza / toggle)
         ├── MatchManager (threading.Lock)
-        │     └── When 2 players queued → spawns GameThread
+        │     └── Cuando hay 2 jugadores en cola → crea GameThread
         └── GameThread
-              ├── Creates GameState (board + secrets)
-              ├── Sends game_start to both players
-              └── Game driven by ClientThread events
+              ├── Crea GameState (tablero + secretos)
+              ├── Envía game_start a ambos jugadores
+              └── Juego impulsado por eventos de ClientThread
 
-HTTP Thread (separate)
-  └── Serves /public/* files (index.html, CSS, JS)
+HTTP Thread (separado)
+  └── Sirve archivos /public/* (index.html, CSS, JS)
+
+Nginx (proxy inverso)
+  ├── Proxy WebSocket: /ws → app:8765
+  ├── Proxy HTTP: / → app:8080
+  └── Sirve archivos estáticos
 ```
 
 ### Thread Safety
 
-- `MatchManager` uses a single `threading.Lock` to protect the waiting queue.
-- `GameState` uses `threading.Lock` for turn transitions and history updates.
-- Each `ClientThread` owns its socket — no shared socket access.
+- `MatchManager` usa un único `threading.Lock` para proteger la cola de espera.
+- `GameState` usa `threading.Lock` para transiciones de turno y actualizaciones de historial.
+- Cada `ClientThread` tiene su propio socket — sin acceso compartido.
 
 ---
 
@@ -49,50 +55,55 @@ HTTP Thread (separate)
 
 ```
 DYPFINAL/
-├── server.py              # Main server: socket, threading, HTTP handler
+├── server.py              # Servidor principal: socket, threading, HTTP handler
 ├── websocket_handler.py   # Manual WebSocket: handshake, frame encode/decode
-├── game_logic.py          # GameState, turn logic, answer validation
-├── characters.py          # 24 characters with attributes
-├── requirements.txt       # Empty — stdlib only
+├── game_logic.py          # GameState, lógica de turnos, validación de respuestas
+├── characters.py          # 33 políticos colombianos con imágenes y datos divertidos
+├── requirements.txt       # Vacío — solo stdlib
 ├── public/
-│   ├── index.html         # Game UI (waiting → playing → game over)
-│   ├── css/style.css      # Dark glassmorphism theme
-│   └── js/app.js          # WebSocket client, board rendering
+│   ├── index.html         # Interfaz del juego en español con imágenes de políticos
+│   ├── css/style.css      # Estilo actualizado para tarjetas de imágenes
+│   └── js/app.js          # Cliente WebSocket con renderizado de imágenes y preguntas divertidas
 └── README.md
 ```
 
 ---
 
-## How to Run
+## Cómo Ejecutar
+
+### Ejecución Local
 
 ```bash
+# Iniciar el servidor
 python server.py
 ```
 
-Then open **two browser tabs** at:
+Luego abrir **dos pestañas del navegador** en:
 
 ```
 http://localhost:8080
 ```
 
-Both tabs connect to `ws://localhost:8765`. The MatchManager pairs them automatically and the game starts.
+Ambas pestañas se conectarán a `ws://localhost:8765`. El MatchManager las empareja automáticamente y el juego comienza.
 
-### Multiple simultaneous games
+### Múltiples partidas simultáneas
 
-Open 4 tabs — two games form independently. Each `GameThread` is isolated; threads from different games never share a `GameState`.
+Abrir 4 pestañas — se forman dos partidas independientes. Cada `GameThread` está aislado; los hilos de diferentes partidas nunca comparten un `GameState`.
 
 ---
 
-## WebSocket Implementation
+---
 
-The `websocket_handler.py` module implements the WebSocket protocol (RFC 6455) from scratch:
+## Implementación WebSocket
+
+El módulo `websocket_handler.py` implementa el protocolo WebSocket (RFC 6455) desde cero:
 
 ### Handshake
 
-1. Server reads the HTTP `Upgrade: websocket` request.
-2. Extracts `Sec-WebSocket-Key` from headers.
-3. Computes `Sec-WebSocket-Accept = base64(SHA-1(key + GUID))`.
-4. Sends `101 Switching Protocols` response.
+1. El servidor lee la petición HTTP `Upgrade: websocket`.
+2. Extrae `Sec-WebSocket-Key` de los headers.
+3. Calcula `Sec-WebSocket-Accept = base64(SHA-1(key + GUID))`.
+4. Envía respuesta `101 Switching Protocols`.
 
 ```python
 accept = base64.b64encode(
@@ -105,15 +116,15 @@ accept = base64.b64encode(
 ```
  0                   1                   2                   3
  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-+-+-+-+-+-------+-+-------------+-------------------------------+
++-+-+-+-+-+-+-+-+-+-------+-+-------------+-------------------------------+
 |F|R|R|R| opcode|M| Payload len |    Extended payload length    |
 |I|S|S|S|  (4)  |A|     (7)     |             (16/64)           |
 |N|V|V|V|       |S|             |                               |
 | |1|2|3|       |K|             |                               |
-+-+-+-+-+-------+-+-------------+-------------------------------+
++-+-+-+-+-+-+-+-+-+-------+-+-------------+-------------------------------+
 ```
 
-Client frames are always masked; server frames are unmasked. Masking/unmasking uses XOR with a 4-byte key:
+Los frames del cliente siempre están enmascarados; los del servidor no. El enmascaramiento/desenmascaramiento usa XOR con una clave de 4 bytes:
 
 ```python
 payload = bytes(b ^ mask_key[i % 4] for i, b in enumerate(payload))
@@ -121,67 +132,187 @@ payload = bytes(b ^ mask_key[i % 4] for i, b in enumerate(payload))
 
 ---
 
-## Communication Protocol
+## Protocolo de Comunicación
 
-### Client → Server
+### Cliente → Servidor
 
 ```json
-{ "type": "question", "attribute": "hair_color", "value": "red" }
+{ "type": "question", "attribute": "hair_color", "value": "rojo" }
 { "type": "guess",    "name": "Carlos" }
 { "type": "toggle",   "name": "Maria" }
 ```
 
-### Server → Client
+### Servidor → Cliente
 
 ```json
 { "type": "waiting" }
 { "type": "game_start", "board": [...], "your_turn": true, "player_number": 1, "your_secret": "Alex" }
-{ "type": "question_result", "question": "Does he/she have red hair?", "answer": true, "your_turn": false }
-{ "type": "opponent_asked",  "question": "Does he/she wear glasses?", "your_turn": true }
+{ "type": "question_result", "question": "¿Tiene pelo rojo?", "answer": true, "your_turn": false }
+{ "type": "opponent_asked",  "question": "¿Lleva gafas?", "your_turn": true }
 { "type": "game_over", "winner": true, "opponent_secret": "Ben", "your_secret": "Alex" }
 { "type": "opponent_disconnected" }
 ```
 
 ---
 
-## Game Rules
+## Reglas del Juego
 
-1. Server assigns turn to Player 1 at game start.
-2. On your turn you can:
-   - **Ask** — pick an attribute + value; server answers **Yes/No** based on the opponent's secret character.
-   - **Guess** — name a character; correct → you win, wrong → you lose immediately.
-3. After a question, the turn passes to the opponent.
-4. Clicking a character card on the board toggles it as eliminated (local visual aid only).
-
----
-
-## Characters
-
-24 characters with these attributes:
-
-| Attribute    | Values |
-|--------------|--------|
-| `gender`     | male, female |
-| `hair_color` | black, brown, blonde, red, white, none |
-| `hair_type`  | straight, curly, bald |
-| `eye_color`  | brown, blue, green |
-| `has_glasses`| true, false |
-| `has_hat`    | true, false |
-| `has_beard`  | true, false |
-| `has_mustache` | true, false |
-| `skin_tone`  | light, medium, dark |
+1. El servidor asigna el turno al Jugador 1 al inicio.
+2. En tu turno puedes:
+   - **Preguntar** — seleccionar atributo + valor; el servidor responde **Sí/No** basado en el personaje secreto del oponente.
+   - **Adivinar** — nombrar un personaje; correcto → ganas, incorrecto → pierdes inmediatamente.
+3. Después de una pregunta, el turno pasa al oponente.
+4. Hacer clic en una carta del tablero la marca como eliminada (ayuda visual local).
 
 ---
 
-## Verification
+## Personajes Colombianos
+
+**33 políticos colombianos** con imágenes de Wikipedia, datos divertidos y información de partidos:
+
+### Estructura de Personajes
+
+Cada personaje incluye:
+
+| Atributo    | Valores | Descripción |
+|--------------|--------|-------------|
+| `name`       | String | Nombre completo del político |
+| `image`      | URL | Imagen de Wikipedia (220px) |
+| `gender`     | male, female | Género |
+| `hair_color` | black, brown, blonde, red, white, none | Color de pelo |
+| `hair_type`  | straight, curly, bald | Tipo de pelo |
+| `eye_color`  | brown, blue, green | Color de ojos |
+| `has_glasses`| true, false | Lleva lentes |
+| `has_hat`    | true, false | Lleva sombrero/gorra |
+| `has_beard`  | true, false | Tiene barba |
+| `has_mustache` | true, false | Tiene bigote |
+| `skin_tone`  | light, medium, dark | Tono de piel |
+| `fun_fact`   | String | Dato curioso divertido |
+| `party`      | String | Partido político |
+
+### Ejemplos de Personajes
+
+- **Gustavo Petro** - Cantaba vallenatos en su juventud (Colombia Humana)
+- **Iván Duque** - Tiene un MBA de Harvard (Centro Democrático)
+- **Ángela María Orozco** - Primera alcaldesa de Bogotá (Liberal)
+- **Rodolfo Hernández** - Exalcalde de Bucaramanga (Liga de Gobernantes)
+
+### Preguntas Divertidas en Español
+
+El sistema genera preguntas automáticamente con toques humorísticos:
+
+- "¿Cantaba vallenatos en su juventud?" (referencia a Gustavo Petro)
+- "¿Tiene un MBA de Harvard?" (referencia a Iván Duque)
+- "¿Es una política mujer?" (género)
+- "¿Tiene el pelo café?" (color de pelo)
+- "¿Lleva lentes?" (accesorios)
+
+---
+
+## Interfaz en Español con Imágenes
+
+La interfaz de usuario está completamente traducida al español con imágenes reales:
+
+### Características de la Interfaz
+
+- **Pantalla de espera**: "Esperando a un oponente…" con spinner animado
+- **Tarjetas de personajes**: Imagen real + nombre + dato curioso (💡)
+- **Botones**: "Preguntar", "Adivinar", "Jugar de Nuevo"
+- **Indicador de turno**: "Tu turno" / "Turno del oponente"
+- **Modal de fin**: "¡Has Ganado!" / "¡Has Perdido!"
+- **Historial**: "Historial de Preguntas" con iconos ✅/❌
+
+### Renderizado de Imágenes
+
+- Las imágenes se cargan desde URLs de Wikipedia
+- Manejo de errores con imagen SVG fallback
+- Diseño responsive con `object-fit: cover`
+- Tooltip con dato curioso al pasar el mouse sobre 💡
+
+### Preguntas Dinámicas
+
+El sistema genera preguntas en español basadas en los atributos:
+
+```javascript
+function getQuestionText(attr, value) {
+  // Ejemplos:
+  // "¿Es un político hombre?" (gender: male)
+  // "¿Tiene el pelo café?" (hair_color: brown)
+  // "¿Lleva lentes?" (has_glasses: true)
+  // "¿Cantaba vallenatos en su juventud?" (fun_fact)
+}
+```
+
+---
+
+## Verificación
 
 ```bash
-# 1. Start the server
+# 1. Iniciar el servidor
 python server.py
 
-# 2. Open two browser tabs at http://localhost:8080
-# 3. Matchmaking happens automatically
-# 4. Play a full game
+# 2. Abrir dos pestañas del navegador en http://localhost:8080
+# 3. El matchmaking ocurre automáticamente
+# 4. Jugar una partida completa con personajes colombianos
 
-# For concurrency test: open 4 tabs → two independent games run in parallel
+# Para prueba de concurrencia: abrir 4 pestañas → dos partidas independientes
 ```
+
+### Pruebas adicionales
+
+- **Desconexión**: Cerrar una pestaña → el otro jugador debe ser notificado
+- **Concurrencia**: 2+ partidas simultáneas sin interferencia
+- **Carga de imágenes**: Verificar que todas las URLs de Wikipedia carguen correctamente
+- **Preguntas divertidas**: Probar que las preguntas se generan correctamente en español
+
+### Pruebas de Imágenes
+
+- URLs rotas: El sistema muestra imagen SVG fallback
+- Carga lenta: Imágenes con `loading="lazy"`
+- Responsive: Se adaptan a diferentes tamaños de pantalla
+
+---
+
+## Despliegue
+
+Para producción, el servidor puede ejecutarse directamente o tras un proxy inverso:
+
+```bash
+# Ejecutar directamente
+python server.py
+```
+
+Para configurar tras un proxy inverso (Nginx, Apache, etc.):
+- Proxy WebSocket: `ws://localhost:8765`
+- Servir archivos estáticos: `/public`
+
+## Cambos Realizados (Versión Colombianos)
+
+### Transformación de Personajes
+- ✅ **33 políticos colombianos** reemplazando personajes genéricos
+- ✅ **Imágenes de Wikipedia** con thumbnails de 220px
+- ✅ **Datos divertidos** (fun facts) para cada personaje
+- ✅ **Información de partidos** políticos
+
+### Actualización Frontend
+- ✅ **Renderizado de imágenes** reemplazando emojis
+- ✅ **CSS actualizado** para tarjetas de imágenes
+- ✅ **Preguntas dinámicas** en español con toques humorísticos
+- ✅ **Manejo de errores** con imágenes SVG fallback
+
+### Mejoras de Juego
+- ✅ **33 personajes** vs 24 originales (más variedad)
+- ✅ **Contexto cultural** colombiano en preguntas
+- ✅ **Interfaz más rica** con imágenes reales
+- ✅ **Datos educativos** sobre políticos colombianos
+
+### Compatibilidad
+- ✅ **Backend sin cambios** - compatible con nueva estructura
+- ✅ **Protocolo WebSocket** inalterado
+- ✅ **Múltiples partidas** simultáneas soportadas
+
+### NOTA: Docker y Nginx
+- Los archivos Dockerfile, docker-compose.yml y nginx.conf fueron eliminados según solicitud
+- El servidor funciona con su servidor HTTP integrado en el puerto 8080
+- WebSocket funciona directamente en el puerto 8765
+- Puede ser desplegado con cualquier proxy inverso en el futuro
