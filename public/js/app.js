@@ -1,7 +1,8 @@
 (() => {
   'use strict';
 
-  const WS_URL = `ws://${location.hostname}:8765`;
+  const WS_PROTOCOL = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const WS_URL = `${WS_PROTOCOL}//${location.host}/ws`;
 
   // Mapas de valores de atributo para el formulario de preguntas
   const ATTR_VALUES = {

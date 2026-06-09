@@ -74,6 +74,19 @@ Abrir **dos pestañas** en `http://localhost:8080`. El MatchManager las empareja
 
 Para múltiples partidas: abrir 4 pestañas → se forman dos partidas independientes. Cada `GameThread` está aislado.
 
+### Con Docker Compose
+
+```bash
+docker compose up --build
+```
+
+Abrir dos pestañas en `http://localhost:81`.
+
+- `nginx` expone la app en el host por el puerto `81`
+- `nginx` proxyea `GET /` al HTTP interno `app:8080`
+- `nginx` proxyea `/ws` al WebSocket interno `app:8765`
+- el frontend ahora usa WebSocket same-origin (`/ws`) para funcionar detrás del proxy
+
 ---
 
 ## Personajes — Candidatos Reales 2026
@@ -283,5 +296,6 @@ python server.py
 | `8765` | WebSocket — protocolo del juego |
 
 Para proxy inverso (Nginx, Caddy, etc.):
-- `ws://localhost:8765` → WebSocket
 - `http://localhost:8080` → estáticos
+- `ws://localhost:8765` → WebSocket interno
+- `ws://<host>/ws` → WebSocket a través de proxy reverso
