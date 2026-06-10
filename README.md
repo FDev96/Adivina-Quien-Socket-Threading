@@ -80,12 +80,21 @@ Para múltiples partidas: abrir 4 pestañas → se forman dos partidas independi
 docker compose up --build
 ```
 
-Abrir dos pestañas en `http://localhost:81`.
+Opciones de acceso:
 
-- `nginx` escucha en el puerto `81` y ese mismo puerto se publica en el host
+- `http://localhost:81` → acceso académico/testing manteniendo el puerto `81`
+- `http://localhost` → redirección automática a HTTPS
+- `https://localhost` → acceso HTTPS sin especificar puerto
+- `https://adivina-quien.yepesvidev.site` → acceso final esperado cuando el dominio apunte al servidor
+
+Detalles de proxy:
+
+- `nginx` escucha en `80`, `81` y `443`
 - `nginx` proxyea `GET /` al HTTP interno `app:8080`
 - `nginx` proxyea `/ws` al WebSocket interno `app:8765`
 - el frontend ahora usa WebSocket same-origin (`/ws`) para funcionar detrás del proxy
+- si no existe un certificado real en `nginx/ssl/`, el contenedor genera uno self-signed automáticamente
+- si colocás `nginx/ssl/fullchain.pem` y `nginx/ssl/privkey.pem`, Nginx usa esos archivos en lugar del certificado autogenerado
 
 ---
 
