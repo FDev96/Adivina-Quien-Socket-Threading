@@ -80,21 +80,23 @@ Para múltiples partidas: abrir 4 pestañas → se forman dos partidas independi
 docker compose up --build
 ```
 
-Opciones de acceso:
+El proyecto deja Nginx sin una configuración opinada para que la manejes vos.
 
-- `http://localhost:81` → acceso académico/testing manteniendo el puerto `81`
-- `http://localhost` → redirección automática a HTTPS
-- `https://localhost` → acceso HTTPS sin especificar puerto
-- `https://adivina-quien.yepesvidev.site` → acceso final esperado cuando el dominio apunte al servidor
+- `app` expone internamente `8080` y `8765`
+- `nginx` publica `80`, `81` y `443`
+- `nginx/nginx.conf` define la base de Nginx
+- la configuración activa se toma desde `nginx/conf.d/default.conf`
+- el archivo inicial es solo un placeholder para confirmar que Nginx está levantado
+- reemplazá `nginx/conf.d/default.conf` con tu propia configuración de proxy, dominio y SSL
+- `443` queda expuesto y listo para que agregues tus bloques `listen 443 ssl` cuando pongas certificados
 
-Detalles de proxy:
+Acceso inicial de prueba:
 
-- `nginx` escucha en `80`, `81` y `443`
-- `nginx` proxyea `GET /` al HTTP interno `app:8080`
-- `nginx` proxyea `/ws` al WebSocket interno `app:8765`
-- el frontend ahora usa WebSocket same-origin (`/ws`) para funcionar detrás del proxy
-- si no existe un certificado real en `nginx/ssl/`, el contenedor genera uno self-signed automáticamente
-- si colocás `nginx/ssl/fullchain.pem` y `nginx/ssl/privkey.pem`, Nginx usa esos archivos en lugar del certificado autogenerado
+- `http://localhost:81` → respuesta mínima de Nginx para confirmar que está corriendo
+
+Nota importante:
+
+- el frontend ya usa WebSocket same-origin (`/ws`), así que tu configuración de Nginx debe decidir cómo enrutar `/` y `/ws`
 
 ---
 
