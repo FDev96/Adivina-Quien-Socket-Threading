@@ -80,23 +80,26 @@ Para múltiples partidas: abrir 4 pestañas → se forman dos partidas independi
 docker compose up --build
 ```
 
-El proyecto deja Nginx sin una configuración opinada para que la manejes vos.
+El proyecto usa **Nginx Proxy Manager** para que configures el proxy desde panel web.
 
 - `app` expone internamente `8080` y `8765`
-- `nginx` publica `80`, `81` y `443`
-- `nginx/nginx.conf` define la base de Nginx
-- la configuración activa se toma desde `nginx/conf.d/default.conf`
-- el archivo inicial es solo un placeholder para confirmar que Nginx está levantado
-- reemplazá `nginx/conf.d/default.conf` con tu propia configuración de proxy, dominio y SSL
-- `443` queda expuesto y listo para que agregues tus bloques `listen 443 ssl` cuando pongas certificados
+- `proxy-manager` publica `80`, `81` y `443`
+- `http://localhost:81` abre el panel de administración
+- datos persistentes del panel: `proxy-manager/data`
+- certificados de Let's Encrypt: `proxy-manager/letsencrypt`
 
-Acceso inicial de prueba:
+Acceso inicial del panel:
 
-- `http://localhost:81` → respuesta mínima de Nginx para confirmar que está corriendo
+- URL: `http://localhost:81`
+- Email inicial: `admin@example.com`
+- Password inicial: `changeme`
+- al entrar por primera vez debés cambiar esas credenciales
 
 Nota importante:
 
-- el frontend ya usa WebSocket same-origin (`/ws`), así que tu configuración de Nginx debe decidir cómo enrutar `/` y `/ws`
+- el frontend ya usa WebSocket same-origin (`/ws`)
+- para que el juego funcione detrás del proxy, configurá el host principal hacia `app:8080`
+- además creá una ubicación personalizada `/ws` hacia `app:8765` con soporte WebSocket habilitado
 
 ---
 
