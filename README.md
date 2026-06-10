@@ -82,7 +82,7 @@ docker compose up --build
 
 Abrir dos pestañas en `http://localhost:81`.
 
-- `nginx` expone la app en el host por el puerto `81`
+- `nginx` escucha en el puerto `81` y ese mismo puerto se publica en el host
 - `nginx` proxyea `GET /` al HTTP interno `app:8080`
 - `nginx` proxyea `/ws` al WebSocket interno `app:8765`
 - el frontend ahora usa WebSocket same-origin (`/ws`) para funcionar detrás del proxy
